@@ -66,7 +66,7 @@ fn parse_markdown_line<'a>(contents: &str, mut _tag_open: bool, mut _tag: &'a st
     return (outline, _tag_open, _tag);
 }
 
-fn parse_markdown_file(_file: &str, _outfile: &str) {
+fn parse_markdown_file(_file: &str) -> Vec<String> {
     let infile = Path::new(_file); // input file path
     // input file handle
     let file = File::open(&infile).expect("[ ERROR ] Failed to open input file.");
@@ -89,21 +89,10 @@ fn parse_markdown_file(_file: &str, _outfile: &str) {
         }
     }
 
-    // print each token, either to stdout or to a file
-    if !_outfile.is_empty() {
-        let mut output_file = File::create(_outfile.to_string())
-            .expect("[ ERROR ] Could not create output file!");
-        for t in &tokens {
-            output_file.write_all(t.as_bytes()).expect("[ ERROR ] Could not write to output file.");
-        }
-    } else {
-        for t in &tokens {
-            println!("{}", t);
-        }
-    }
+    return tokens;
 }
 
-fn parse_markdown_stdin(_outfile: &str) {
+fn parse_markdown_stdin() -> Vec<String> {
     let _stdin = io::stdin(); // stdin
     let reader = _stdin.lock(); // input buffer; put into a separate variable to ensure io::stdin() isn't freed
 
@@ -124,18 +113,7 @@ fn parse_markdown_stdin(_outfile: &str) {
         }
     }
 
-    // print each token, either to stdout or to a file
-    if !_outfile.is_empty() {
-        let mut output_file = File::create(_outfile.to_string())
-            .expect("[ ERROR ] Could not create output file!");
-        for t in &tokens {
-            output_file.write_all(t.as_bytes()).expect("[ ERROR ] Could not write to output file.");
-        }
-    } else {
-        for t in &tokens {
-            println!("{}", t);
-        }
-    }
+    return tokens;
 }
 
 fn main() {
@@ -159,6 +137,7 @@ fn main() {
     // parse arguments
     let input_file: String; // input file
     let output_file: String; // output file
+    let tokens: Vec<String>; // vector to store all tokens
 
     if let Some(o) = _args.value_of("input") {
         input_file = String::from(o);
@@ -172,8 +151,23 @@ fn main() {
     }
 
     if input_file == "" {
-        parse_markdown_stdin(&output_file);
+        tokens = parse_markdown_stdin();
     } else {
-        parse_markdown_file(&input_file, &output_file);
+        tokens = parse_markdown_file(&input_file);
+    }
+
+    // print each token, either to stdout or to a file
+    if !output_file.is_empty() {
+        // create file handle for output file
+        let mut o_fh = File::create(output_file.to_string())
+            .expect("[ ERROR ] Could not create output file!");
+        for t in &tokens {
+            // write each token (i.e. parsed line) to the output file
+            o_fh.write_all(t.as_bytes()).expect("[ ERROR ] Could not write to output file.");
+        }
+    } else {
+        for t in &tokens {
+            println!("{}", t);
+        }
     }
 }
