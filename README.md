@@ -18,10 +18,16 @@ cargo build --release
 To check compliance with the [CommonMark standard](https://commonmark.org), use the [CommonMark specification](https://github.com/commonmark/commonmark-spec).
 
 ```shell
-git clone git@github.com:commonmark/commonmark-spec.git
+git submodule update --init --recursive
 cd commonmark-spec/
 python test/spec_tests.py -p tinymd
 ```
 
-This is still in progress.
-Surprisingly, just being able to parse `h1` and `p` tags passes 82/632 tests.
+This project is still in progress.
+
+Parsing features:
+
+* paragraph text
+* headers of all levels
+
+Surprisingly, just being able to parse `h\d` and `p` tags passes 82/652 tests.
