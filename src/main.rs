@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use clap::{App, Arg};
 
 fn parse_markdown_line(contents: &str, mut _ptag: bool, mut _htag: bool) -> (String, bool, bool) {
@@ -59,17 +59,52 @@ fn parse_markdown_line(contents: &str, mut _ptag: bool, mut _htag: bool) -> (Str
 }
 
 fn parse_markdown_file(_file: &str, _outfile: &str) {
-    // input file path
-    let infile = Path::new(_file);
+    let infile = Path::new(_file); // input file path
     // input file handle
     let file = File::open(&infile).expect("[ ERROR ] Failed to open input file.");
+    let reader = BufReader::new(file); // read line-by-line
 
     let mut _ptag: bool = false; // keep track of paragraph tags
     let mut _htag: bool = false; // keep track of heading tags
     let mut _outline: String; // parsed line contents to be written
 
     let mut tokens: Vec<String> = Vec::new(); // vector to store all tokens
-    let reader = BufReader::new(file); // read line-by-line
+
+    // iterate through lines
+    for line in reader.lines() {
+        let contents = line.unwrap();
+        // parse the line of text
+        let (mut _outline, mut _ptag, mut _htag) = parse_markdown_line(&contents, _ptag, _htag);
+        // check for empty lines, push to tokens
+        if _outline != "<p></p>\n" {
+            tokens.push(_outline);
+        }
+    }
+
+    // print each token, either to stdout or to a file
+    if !_outfile.is_empty() {
+        let mut output_file = File::create(_outfile.to_string())
+            .expect("[ ERROR ] Could not create output file!");
+        for t in &tokens {
+            output_file.write_all(t.as_bytes()).expect("[ ERROR ] Could not write to output file.")
+        }
+    } else {
+        for t in &tokens {
+            println!("{}", t);
+        }
+    }
+
+}
+
+fn parse_markdown_stdin(_outfile: &str) {
+    let _stdin = io::stdin(); // stdin
+    let reader = _stdin.lock(); // input buffer
+
+    let mut _ptag: bool = false; // keep track of paragraph tags
+    let mut _htag: bool = false; // keep track of heading tags
+    let mut _outline: String; // parsed line contents to be written
+
+    let mut tokens: Vec<String> = Vec::new(); // vector to store all tokens
 
     // iterate through lines
     for line in reader.lines() {
@@ -110,7 +145,7 @@ fn main() {
         )
         .arg(Arg::with_name("input")
             .about("Input markdown file to read")
-            .required(true)
+            .required(false)
             .takes_value(true)
         )
         .get_matches();
@@ -127,6 +162,14 @@ fn main() {
             parse_markdown_file(&input_file, &output_file);
         } else {
             parse_markdown_file(&input_file, "");
+        }
+    } else {
+        // if no "input" file, parse from STDIN
+        if let Some(o) = _args.value_of("output") {
+            output_file = String::from(o);
+            parse_markdown_stdin(&output_file);
+        } else {
+            parse_markdown_stdin("");
         }
     }
 }
