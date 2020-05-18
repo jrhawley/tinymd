@@ -17,7 +17,7 @@ fn add_tag(_s: &str, _tag: &str, _open: bool) -> String {
     return new_s;
 }
 
-fn parse_markdown_line(contents: &str, mut _ptag: bool, mut _htag: bool) -> (String, bool, bool) {
+fn parse_markdown_line<'a>(contents: &str, mut _tag_open: bool, mut _tag: &'a str) -> (String, bool, &'a str) {
     // parse first character from line
     let mut first_char: Vec<char> = contents.chars().take(1).collect();
     let mut outline = String::new();
@@ -26,33 +26,30 @@ fn parse_markdown_line(contents: &str, mut _ptag: bool, mut _htag: bool) -> (Str
     match first_char.pop() {
         // if header line
         Some('#') => {
-            // close paragraph, if currently open
-            if _ptag {
-                _ptag = false;
-                outline = add_tag(&outline, "p", _ptag);
-            }
-            // if currently header, this line should be a new header
-            if _htag {
-                _htag = false;
-                outline = add_tag(&outline, "h1", _htag);
+            // close previous tag, if currently open
+            if _tag_open {
+                _tag_open = false;
+                outline = add_tag(&outline, _tag, _tag_open);
             }
 
             // set _htag to true, write new header
-            _htag = true;
-            outline = add_tag(&outline, "h1", _htag);
+            _tag_open = true;
+            _tag = "h1";
+            outline = add_tag(&outline, _tag, _tag_open);
             outline.push_str(&contents[2..]);
         },
         // if part of the non-header text
         _ => {
             // close header, if currently open
-            if _htag {
-                _htag = false;
-                outline = add_tag(&outline, "h1", _htag);
+            if _tag_open && _tag == "h1" {
+                _tag_open = false;
+                outline = add_tag(&outline, _tag, _tag_open);
             }
             // if currently paragraph, continue
-            if !_ptag {
-                _ptag = true;
-                outline = add_tag(&outline, "p", _ptag);
+            if !_tag_open {
+                _tag_open = true;
+                _tag = "p";
+                outline = add_tag(&outline, _tag, _tag_open);
             }
 
             // add paragraph contents
@@ -61,17 +58,12 @@ fn parse_markdown_line(contents: &str, mut _ptag: bool, mut _htag: bool) -> (Str
     }
 
     // close appropriate tags
-    if _ptag {
-        _ptag = false;
-        outline = add_tag(&outline, "p", _ptag);
-    }
-    // if currently header, this line should be a new header
-    if _htag {
-        _htag = false;
-        outline = add_tag(&outline, "h1", _htag);
+    if _tag_open {
+        _tag_open = false;
+        outline = add_tag(&outline, _tag, _tag_open);
     }
 
-    return (outline, _ptag, _htag);
+    return (outline, _tag_open, _tag);
 }
 
 fn parse_markdown_file(_file: &str, _outfile: &str) {
@@ -80,8 +72,8 @@ fn parse_markdown_file(_file: &str, _outfile: &str) {
     let file = File::open(&infile).expect("[ ERROR ] Failed to open input file.");
     let reader = BufReader::new(file); // read line-by-line
 
-    let mut _ptag: bool = false; // keep track of paragraph tags
-    let mut _htag: bool = false; // keep track of heading tags
+    let mut _tag_open: bool = false; // keep track of open tags
+    let mut _tag = &""; // keep track of open tag type (initialize, but set to empty)
     let mut _outline: String; // parsed line contents to be written
 
     let mut tokens: Vec<String> = Vec::new(); // vector to store all tokens
@@ -90,7 +82,7 @@ fn parse_markdown_file(_file: &str, _outfile: &str) {
     for line in reader.lines() {
         let contents = line.unwrap();
         // parse the line of text
-        let (mut _outline, mut _ptag, mut _htag) = parse_markdown_line(&contents, _ptag, _htag);
+        let (mut _outline, mut _tag_open, mut _tag) = parse_markdown_line(&contents, _tag_open, _tag);
         // check for empty lines, push to tokens
         if _outline != "<p></p>\n" {
             tokens.push(_outline);
@@ -115,8 +107,8 @@ fn parse_markdown_stdin(_outfile: &str) {
     let _stdin = io::stdin(); // stdin
     let reader = _stdin.lock(); // input buffer; put into a separate variable to ensure io::stdin() isn't freed
 
-    let mut _ptag: bool = false; // keep track of paragraph tags
-    let mut _htag: bool = false; // keep track of heading tags
+    let mut _tag_open: bool = false; // keep track of open tags
+    let mut _tag = &""; // keep track of open tag type (initialize, but set to empty)
     let mut _outline: String; // parsed line contents to be written
 
     let mut tokens: Vec<String> = Vec::new(); // vector to store all tokens
@@ -125,7 +117,7 @@ fn parse_markdown_stdin(_outfile: &str) {
     for line in reader.lines() {
         let contents = line.unwrap();
         // parse the line of text
-        let (mut _outline, mut _ptag, mut _htag) = parse_markdown_line(&contents, _ptag, _htag);
+        let (mut _outline, mut _tag_open, mut _tag) = parse_markdown_line(&contents, _tag_open, _tag);
         // check for empty lines, push to tokens
         if _outline != "<p></p>\n" {
             tokens.push(_outline);
