@@ -150,26 +150,24 @@ fn main() {
         )
         .get_matches();
 
-    // input file
-    let input_file: String;
-    // output file
-    let output_file: String;
+    // parse arguments
+    let input_file: String; // input file
+    let output_file: String; // output file
 
     if let Some(o) = _args.value_of("input") {
         input_file = String::from(o);
-        if let Some(o) = _args.value_of("output") {
-            output_file = String::from(o);
-            parse_markdown_file(&input_file, &output_file);
-        } else {
-            parse_markdown_file(&input_file, "");
-        }
     } else {
-        // if no "input" file, parse from STDIN
-        if let Some(o) = _args.value_of("output") {
-            output_file = String::from(o);
-            parse_markdown_stdin(&output_file);
-        } else {
-            parse_markdown_stdin("");
-        }
+        input_file = "".to_string();
+    }
+    if let Some(o) = _args.value_of("output") {
+        output_file = String::from(o);
+    } else {
+        output_file = "".to_string();
+    }
+
+    if input_file == "" {
+        parse_markdown_stdin(&output_file);
+    } else {
+        parse_markdown_file(&input_file, &output_file);
     }
 }
