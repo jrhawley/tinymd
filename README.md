@@ -22,3 +22,6 @@ git clone git@github.com:commonmark/commonmark-spec.git
 cd commonmark-spec/
 python test/spec_tests.py -p tinymd
 ```
+
+This is still in progress.
+Surprisingly, just being able to parse `h1` and `p` tags passes 82/632 tests.
