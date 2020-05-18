@@ -35,14 +35,16 @@ fn parse_markdown_line(contents: &str, mut _tag_open: bool, mut _tag: &str) -> (
             }
 
             // determine what level of header is present (i.e. how many '#' are at the start)
-            let header_md_re = Regex::new(r"^#+ ").unwrap();
-            let mat = header_md_re.find(contents).unwrap();
+            let header_md_re = Regex::new(r"^#{1,6} ").unwrap();
+            let mat = header_md_re.find(contents);
+            if let Some(m) = mat {
+                // set _tag_open to true, write new header
+                _tag_open = true;
+                tag = format!("h{}", m.end() - 1);
+                outline = add_tag(&outline, &tag, _tag_open);
+                outline.push_str(&contents[2..]);
+            }
             
-            // set _tag_open to true, write new header
-            _tag_open = true;
-            tag = format!("h{}", mat.end() - 1);
-            outline = add_tag(&outline, &tag, _tag_open);
-            outline.push_str(&contents[2..]);
         },
         // if part of the non-header text
         _ => {
