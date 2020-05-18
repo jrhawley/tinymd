@@ -2,6 +2,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 use clap::{App, Arg};
+use regex::Regex;
 
 fn add_tag(_s: &str, _tag: &str, _open: bool) -> String {
     let mut new_s = String::from(_s);
@@ -17,10 +18,11 @@ fn add_tag(_s: &str, _tag: &str, _open: bool) -> String {
     return new_s;
 }
 
-fn parse_markdown_line<'a>(contents: &str, mut _tag_open: bool, mut _tag: &'a str) -> (String, bool, &'a str) {
+fn parse_markdown_line(contents: &str, mut _tag_open: bool, mut _tag: &str) -> (String, bool, String) {
     // parse first character from line
     let mut first_char: Vec<char> = contents.chars().take(1).collect();
     let mut outline = String::new();
+    let mut tag = String::from(_tag);
 
     // see if the first character is a header line marker (i.e. '#')
     match first_char.pop() {
@@ -29,27 +31,32 @@ fn parse_markdown_line<'a>(contents: &str, mut _tag_open: bool, mut _tag: &'a st
             // close previous tag, if currently open
             if _tag_open {
                 _tag_open = false;
-                outline = add_tag(&outline, _tag, _tag_open);
+                outline = add_tag(&outline, &tag, _tag_open);
             }
 
-            // set _htag to true, write new header
+            // determine what level of header is present (i.e. how many '#' are at the start)
+            let header_md_re = Regex::new(r"^#+ ").unwrap();
+            let mat = header_md_re.find(contents).unwrap();
+            
+            // set _tag_open to true, write new header
             _tag_open = true;
-            _tag = "h1";
-            outline = add_tag(&outline, _tag, _tag_open);
+            tag = format!("h{}", mat.end() - 1);
+            outline = add_tag(&outline, &tag, _tag_open);
             outline.push_str(&contents[2..]);
         },
         // if part of the non-header text
         _ => {
+            let header_html_re = Regex::new(r"h\d").unwrap();
             // close header, if currently open
-            if _tag_open && _tag == "h1" {
+            if _tag_open && header_html_re.is_match(&tag) {
                 _tag_open = false;
-                outline = add_tag(&outline, _tag, _tag_open);
+                outline = add_tag(&outline, &tag, _tag_open);
             }
             // if currently paragraph, continue
             if !_tag_open {
                 _tag_open = true;
-                _tag = "p";
-                outline = add_tag(&outline, _tag, _tag_open);
+                tag = "p".to_string();
+                outline = add_tag(&outline, &tag, _tag_open);
             }
 
             // add paragraph contents
@@ -60,10 +67,10 @@ fn parse_markdown_line<'a>(contents: &str, mut _tag_open: bool, mut _tag: &'a st
     // close appropriate tags
     if _tag_open {
         _tag_open = false;
-        outline = add_tag(&outline, _tag, _tag_open);
+        outline = add_tag(&outline, &tag, _tag_open); 
     }
 
-    return (outline, _tag_open, _tag);
+    return (outline, _tag_open, tag);
 }
 
 fn parse_markdown_file(_file: &str) -> Vec<String> {
