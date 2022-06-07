@@ -1,8 +1,8 @@
-use std::path::Path;
+use clap::{crate_description, crate_name, crate_version, Arg, Command};
+use regex::Regex;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
-use clap::{App, Arg};
-use regex::Regex;
+use std::path::Path;
 
 fn add_tag(_s: &str, _tag: &str, _open: bool) -> String {
     let mut new_s = String::from(_s);
@@ -18,7 +18,11 @@ fn add_tag(_s: &str, _tag: &str, _open: bool) -> String {
     return new_s;
 }
 
-fn parse_markdown_line(contents: &str, mut _tag_open: bool, mut _tag: &str) -> (String, bool, String) {
+fn parse_markdown_line(
+    contents: &str,
+    mut _tag_open: bool,
+    mut _tag: &str,
+) -> (String, bool, String) {
     // parse first character from line
     let mut first_char: Vec<char> = contents.chars().take(1).collect();
     let mut outline = String::new();
@@ -44,8 +48,7 @@ fn parse_markdown_line(contents: &str, mut _tag_open: bool, mut _tag: &str) -> (
                 outline = add_tag(&outline, &tag, _tag_open);
                 outline.push_str(&contents[2..]);
             }
-            
-        },
+        }
         // if part of the non-header text
         _ => {
             let header_html_re = Regex::new(r"h\d").unwrap();
@@ -69,14 +72,16 @@ fn parse_markdown_line(contents: &str, mut _tag_open: bool, mut _tag: &str) -> (
     // close appropriate tags
     if _tag_open {
         _tag_open = false;
-        outline = add_tag(&outline, &tag, _tag_open); 
+        outline = add_tag(&outline, &tag, _tag_open);
     }
 
     return (outline, _tag_open, tag);
 }
 
 fn parse_markdown_file(_file: &str) -> Vec<String> {
-    let infile = Path::new(_file); // input file path
+    // input file path
+    let infile = Path::new(_file);
+
     // input file handle
     let file = File::open(&infile).expect("[ ERROR ] Failed to open input file.");
     let reader = BufReader::new(file); // read line-by-line
@@ -91,7 +96,8 @@ fn parse_markdown_file(_file: &str) -> Vec<String> {
     for line in reader.lines() {
         let contents = line.unwrap();
         // parse the line of text
-        let (mut _outline, mut _tag_open, mut _tag) = parse_markdown_line(&contents, _tag_open, _tag);
+        let (mut _outline, mut _tag_open, mut _tag) =
+            parse_markdown_line(&contents, _tag_open, _tag);
         // check for empty lines, push to tokens
         if _outline != "<p></p>\n" {
             tokens.push(_outline);
@@ -115,7 +121,8 @@ fn parse_markdown_stdin() -> Vec<String> {
     for line in reader.lines() {
         let contents = line.unwrap();
         // parse the line of text
-        let (mut _outline, mut _tag_open, mut _tag) = parse_markdown_line(&contents, _tag_open, _tag);
+        let (mut _outline, mut _tag_open, mut _tag) =
+            parse_markdown_line(&contents, _tag_open, _tag);
         // check for empty lines, push to tokens
         if _outline != "<p></p>\n" {
             tokens.push(_outline);
@@ -126,20 +133,22 @@ fn parse_markdown_stdin() -> Vec<String> {
 }
 
 fn main() {
-    let _args = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .arg(Arg::with_name("output")
-            .short('o')
-            .long("output")
-            .about("Output file to write to")
-            .required(false)
-            .takes_value(true)
+    let _args = Command::new(crate_name!())
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .help("Output file to write to")
+                .required(false)
+                .takes_value(true),
         )
-        .arg(Arg::with_name("input")
-            .about("Input markdown file to read")
-            .required(false)
-            .takes_value(true)
+        .arg(
+            Arg::new("input")
+                .help("Input markdown file to read")
+                .required(false)
+                .takes_value(true),
         )
         .get_matches();
 
@@ -168,11 +177,12 @@ fn main() {
     // print each token, either to stdout or to a file
     if !output_file.is_empty() {
         // create file handle for output file
-        let mut o_fh = File::create(output_file.to_string())
-            .expect("[ ERROR ] Could not create output file!");
+        let mut o_fh =
+            File::create(output_file.to_string()).expect("[ ERROR ] Could not create output file!");
         for t in &tokens {
             // write each token (i.e. parsed line) to the output file
-            o_fh.write_all(t.as_bytes()).expect("[ ERROR ] Could not write to output file.");
+            o_fh.write_all(t.as_bytes())
+                .expect("[ ERROR ] Could not write to output file.");
         }
     } else {
         for t in &tokens {

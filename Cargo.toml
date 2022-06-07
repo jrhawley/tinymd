@@ -1,13 +1,11 @@
 [package]
 name = "tinymd"
-version = "0.1.1"
-authors = ["James Hawley <jamesrichardhawley@gmail.com>"]
-homepage = "https://jrhawley.github.io/"
+version = "0.1.2"
+authors = ["James Hawley <developer@jrhawley.ca>"]
+homepage = "https://github.com/jrhawley/tinymd"
 description = "A small Markdown parser written in Rust"
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+edition = "2021"
 
 [dependencies]
-clap = "3.0.0-beta.1"
+clap = { version = "3", features = ["cargo"] }
 regex = "1"
